@@ -10,29 +10,29 @@ import type {
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import type {
-	FreshworksConfigResponse,
+	CalendafyConfigResponse,
 	FreshworksCrmApiCredentials,
 	SalesAccounts,
 	ViewsResponse,
 } from './types';
 
-export async function freshworksCrmApiRequest(
+export async function calendafyCrmApiRequest(
 	this: IExecuteFunctions | ILoadOptionsFunctions,
 	method: IHttpRequestMethods,
 	endpoint: string,
 	body: IDataObject = {},
 	qs: IDataObject = {},
 ) {
-	const { domain } = await this.getCredentials<FreshworksCrmApiCredentials>('calendafyCrmApi');
+	const { userid } = await this.getCredentials<FreshworksCrmApiCredentials>('calendafyCrmApi');
 
 	const options: IRequestOptions = {
 		method,
 		body,
 		qs,
-		uri: `https://${domain}.myfreshworks.com/crm/sales/api${endpoint}`,
+		uri: `https://crm.calendafy.com/api/1.1/wf/n8n`,
 		json: true,
 	};
-
+	Object.assign(body,{clientid:userid});
 	if (!Object.keys(body).length) {
 		delete options.body;
 	}
@@ -63,7 +63,7 @@ export async function getAllItemsViewId(
 		keyword = 'My Deals'; // no 'All Deals' available
 	}
 
-	const response = (await freshworksCrmApiRequest.call(
+	const response = (await calendafyCrmApiRequest.call(
 		this,
 		'GET',
 		`/${resource}s/filters`,
@@ -78,7 +78,7 @@ export async function getAllItemsViewId(
 	return view.id.toString();
 }
 
-export async function freshworksCrmApiRequestAllItems(
+export async function calendafyCrmApiRequestAllItems(
 	this: IExecuteFunctions | ILoadOptionsFunctions,
 	method: IHttpRequestMethods,
 	endpoint: string,
@@ -91,7 +91,7 @@ export async function freshworksCrmApiRequestAllItems(
 	qs.page = 1;
 
 	do {
-		response = await freshworksCrmApiRequest.call(this, method, endpoint, body, qs);
+		response = await calendafyCrmApiRequest.call(this, method, endpoint, body, qs);
 		const key = Object.keys(response as IDataObject)[0];
 		returnData.push(...(response[key] as IDataObject[]));
 		qs.page++;
@@ -110,10 +110,10 @@ export async function handleListing(
 	const returnAll = this.getNodeParameter('returnAll', 0);
 
 	if (returnAll) {
-		return await freshworksCrmApiRequestAllItems.call(this, method, endpoint, body, qs);
+		return await calendafyCrmApiRequestAllItems.call(this, method, endpoint, body, qs);
 	}
 
-	const responseData = await freshworksCrmApiRequestAllItems.call(this, method, endpoint, body, qs);
+	const responseData = await calendafyCrmApiRequestAllItems.call(this, method, endpoint, body, qs);
 	const limit = this.getNodeParameter('limit', 0) as number;
 
 	if (limit) return responseData.slice(0, limit);
@@ -124,14 +124,14 @@ export async function handleListing(
 /**
  * Load resources for options, except users.
  *
- * See: https://developers.freshworks.com/crm/api/#admin_configuration
+ * See: https://developers.calendafy.com/crm/api/#admin_configuration
  */
 export async function loadResource(this: ILoadOptionsFunctions, resource: string) {
-	const response = (await freshworksCrmApiRequest.call(
+	const response = (await calendafyCrmApiRequest.call(
 		this,
 		'GET',
 		`/selector/${resource}`,
-	)) as FreshworksConfigResponse<LoadedResource>;
+	)) as CalendafyConfigResponse<LoadedResource>;
 
 	const key = Object.keys(response)[0];
 	return response[key].map(({ name, id }) => ({ name, value: id }));

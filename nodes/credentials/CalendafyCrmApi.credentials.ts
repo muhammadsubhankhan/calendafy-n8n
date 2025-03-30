@@ -31,31 +31,33 @@ export class CalendafyCrmApi implements ICredentialType {
 			default: '',
 			placeholder: '',
 		},
-		{
-			displayName: 'Domain',
-			name: 'domain',
-			type: 'string',
-			default: '',
-			placeholder: 'n8n-org',
-			description:
-				'Domain in the calendafy CRM org URL. For example, in <code>https://n8n-org.mycalendafy.com</code>, the domain is <code>n8n-org</code>.',
-		},
 	];
 
 	authenticate: IAuthenticateGeneric = {
 		type: 'generic',
 		properties: {
 			headers: {
-				Authorization: '=Token token={{$credentials?.apiKey}}',
+				Authorization: '=Bearer {{$credentials?.apiKey}}',
 			},
+			// body:{
+			// 	clientid:"1685917790655x927638688744341500"
+			// },
 		},
 	};
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '=https://{{$credentials?.domain}}.myfreshworks.com/crm/sales/api',
-			url: '/tasks',
-			method: 'GET',
+			baseURL: '=https://crm.calendafy.com/api/1.1/wf/n8n',
+			url: '/',
+			method: 'POST',
+			headers: {
+				Authorization: '=Bearer {{$credentials?.apiKey}}',
+			},
+			body:{
+				resource:"credential",
+				operation:"check",
+				clientid:'{{$credentials?.userid}}'
+			}
 		},
 	};
 }

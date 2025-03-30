@@ -30,13 +30,13 @@ import {
 import {
 	adjustAccounts,
 	adjustAttendees,
-	freshworksCrmApiRequest,
+	calendafyCrmApiRequest,
 	getAllItemsViewId,
 	handleListing,
 	loadResource,
 	throwOnEmptyUpdate,
 } from './GenericFunctions';
-import type { FreshworksConfigResponse, LoadedCurrency, LoadedUser, LoadOption } from './types';
+import type { CalendafyConfigResponse, LoadedCurrency, LoadedUser, LoadOption } from './types';
 
 export class CalendafyCrm implements INodeType {
 	description: INodeTypeDescription = {
@@ -157,11 +157,11 @@ export class CalendafyCrm implements INodeType {
 			},
 
 			async getCurrencies(this: ILoadOptionsFunctions) {
-				const response = (await freshworksCrmApiRequest.call(
+				const response = (await calendafyCrmApiRequest.call(
 					this,
 					'GET',
 					'/selector/currencies',
-				)) as FreshworksConfigResponse<LoadedCurrency>;
+				)) as CalendafyConfigResponse<LoadedCurrency>;
 
 				const key = Object.keys(response)[0];
 
@@ -220,11 +220,11 @@ export class CalendafyCrm implements INodeType {
 
 			async getUsers(this: ILoadOptionsFunctions) {
 				// for attendees, owners, and creators
-				const response = (await freshworksCrmApiRequest.call(
+				const response = (await calendafyCrmApiRequest.call(
 					this,
 					'GET',
 					'/selector/owners',
-				)) as FreshworksConfigResponse<LoadedUser>;
+				)) as CalendafyConfigResponse<LoadedUser>;
 
 				const key = Object.keys(response)[0];
 
@@ -250,17 +250,20 @@ export class CalendafyCrm implements INodeType {
 					//                                account
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#accounts
+					// https://developers.calendafy.com/crm/api/#accounts
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//             account: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_account
+						// https://developers.calendafy.com/crm/api/#create_account
 
 						const body = {
 							name: this.getNodeParameter('name', i),
+							resource:resource,
+							operation:operation
+
 						} as IDataObject;
 
 						const additionalFields = this.getNodeParameter('additionalFields', i);
@@ -269,55 +272,80 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, additionalFields);
 						}
 
-						responseData = await freshworksCrmApiRequest.call(
+						responseData = await calendafyCrmApiRequest.call(
 							this,
 							'POST',
-							'/sales_accounts',
+							'/',
 							body,
 						);
-						responseData = responseData.sales_account;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//             account: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_account
+						// https://developers.calendafy.com/crm/api/#delete_account
 
 						const accountId = this.getNodeParameter('accountId', i);
 
-						const endpoint = `/sales_accounts/${accountId}`;
-						await freshworksCrmApiRequest.call(this, 'DELETE', endpoint);
-						responseData = { success: true };
+						const body = {
+							resource:resource,
+							operation:operation,
+							accountId:accountId
+						} as IDataObject;
+
+						const endpoint = `/`;
+						responseData=await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
 					} else if (operation === 'get') {
 						// ----------------------------------------
 						//               account: get
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#view_account
+						// https://developers.calendafy.com/crm/api/#view_account
 
 						const accountId = this.getNodeParameter('accountId', i);
-
-						const endpoint = `/sales_accounts/${accountId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', endpoint);
-						responseData = responseData.sales_account;
+						const body={
+							accountId:accountId,
+							resource:resource,
+							operation:operation,
+						}
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
 					} else if (operation === 'getAll') {
 						// ----------------------------------------
 						//             account: getAll
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#list_all_accounts
+						// https://developers.calendafy.com/crm/api/#list_all_accounts
 
 						const view = this.getNodeParameter('view', i) as string;
+						const returnAll = this.getNodeParameter('returnAll', 0);
+						const limit = this.getNodeParameter('limit', 0) as number;
 
-						responseData = await handleListing.call(this, 'GET', `/sales_accounts/view/${view}`);
+						const body={
+							resource:resource,
+							operation:operation,
+							view:view,
+							returnAll:returnAll,
+							limit:limit
+						}
+
+						// responseData = await handleListing.call(this, 'POST', `/`,body);
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/',body);
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//             account: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_account
+						// https://developers.calendafy.com/crm/api/#update_a_account
 
-						const body = {} as IDataObject;
+						const accountId = this.getNodeParameter('accountId', i);
+
+						const body = {
+							resource:resource,
+							operation:operation,
+							accountId:accountId
+
+						} as IDataObject;
 						const updateFields = this.getNodeParameter('updateFields', i);
 
 						if (Object.keys(updateFields).length) {
@@ -326,25 +354,23 @@ export class CalendafyCrm implements INodeType {
 							throwOnEmptyUpdate.call(this, resource);
 						}
 
-						const accountId = this.getNodeParameter('accountId', i);
-
-						const endpoint = `/sales_accounts/${accountId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'PUT', endpoint, body);
-						responseData = responseData.sales_account;
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint, body);
+						responseData = responseData;
 					}
 				} else if (resource === 'appointment') {
 					// **********************************************************************
 					//                              appointment
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#appointments
+					// https://developers.calendafy.com/crm/api/#appointments
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//           appointment: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_appointment
+						// https://developers.calendafy.com/crm/api/#create_appointment
 
 						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject & {
 							time_zone: string;
@@ -372,6 +398,8 @@ export class CalendafyCrm implements INodeType {
 							title: this.getNodeParameter('title', i),
 							from_date: start.format(),
 							end_date: allDay ? start.format() : end.format(),
+							resource:resource,
+							operation:operation
 						} as IDataObject;
 
 						Object.assign(body, additionalFields);
@@ -379,38 +407,48 @@ export class CalendafyCrm implements INodeType {
 						if (attendees.length) {
 							body.appointment_attendees_attributes = adjustAttendees(attendees);
 						}
-						responseData = await freshworksCrmApiRequest.call(this, 'POST', '/appointments', body);
-						responseData = responseData.appointment;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+						responseData = responseData;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//           appointment: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_a_appointment
+						// https://developers.calendafy.com/crm/api/#delete_a_appointment
 
 						const appointmentId = this.getNodeParameter('appointmentId', i);
 
-						const endpoint = `/appointments/${appointmentId}`;
-						await freshworksCrmApiRequest.call(this, 'DELETE', endpoint);
-						responseData = { success: true };
+						const body={
+							appointmentId:appointmentId,
+							resource:resource,
+							operation:operation
+						}
+
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
 					} else if (operation === 'get') {
 						// ----------------------------------------
 						//             appointment: get
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#view_a_appointment
+						// https://developers.calendafy.com/crm/api/#view_a_appointment
 
 						const appointmentId = this.getNodeParameter('appointmentId', i);
 
-						const endpoint = `/appointments/${appointmentId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', endpoint);
-						responseData = responseData.appointment;
+						const endpoint = `/`;
+						const body={
+							appointmentId:appointmentId,
+							resource:resource,
+							operation:operation
+						}
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
+						responseData = responseData;
 					} else if (operation === 'getAll') {
 						// ----------------------------------------
 						//           appointment: getAll
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#list_all_appointments
+						// https://developers.calendafy.com/crm/api/#list_all_appointments
 
 						const { filter, include } = this.getNodeParameter('filters', i) as {
 							filter: string;
@@ -426,13 +464,20 @@ export class CalendafyCrm implements INodeType {
 						if (include) {
 							qs.include = include;
 						}
-						responseData = await handleListing.call(this, 'GET', '/appointments', {}, qs);
+						const body={
+							resource:resource,
+							operation:operation,
+							filter:filter,
+							include:include
+						}
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/',body);
+						// responseData = await handleListing.call(this, 'GET', '/appointments', {}, qs);
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//           appointment: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_appointment
+						// https://developers.calendafy.com/crm/api/#update_a_appointment
 
 						const updateFields = this.getNodeParameter('updateFields', i) as IDataObject & {
 							from_date: string;
@@ -448,7 +493,14 @@ export class CalendafyCrm implements INodeType {
 							throwOnEmptyUpdate.call(this, resource);
 						}
 
-						const body = {} as IDataObject;
+						const appointmentId = this.getNodeParameter('appointmentId', i);
+
+
+						const body = {
+							resource:resource,
+							operation:operation,
+							appointmentId:appointmentId
+						} as IDataObject;
 						const { from_date, end_date, ...rest } = updateFields;
 
 						const timezone = rest.time_zone ?? defaultTimezone;
@@ -468,10 +520,8 @@ export class CalendafyCrm implements INodeType {
 							delete body.attendees;
 						}
 
-						const appointmentId = this.getNodeParameter('appointmentId', i);
-
-						const endpoint = `/appointments/${appointmentId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'PUT', endpoint, body);
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'PUT', endpoint, body);
 						responseData = responseData.appointment;
 					}
 				} else if (resource === 'contact') {
@@ -479,19 +529,21 @@ export class CalendafyCrm implements INodeType {
 					//                                contact
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#contacts
+					// https://developers.calendafy.com/crm/api/#contacts
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//             contact: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_contact
+						// https://developers.calendafy.com/crm/api/#create_contact
 
 						const body = {
 							first_name: this.getNodeParameter('firstName', i),
 							last_name: this.getNodeParameter('lastName', i),
 							emails: this.getNodeParameter('emails', i),
+							resource:resource,
+							operation:operation
 						} as IDataObject;
 
 						const additionalFields = this.getNodeParameter('additionalFields', i);
@@ -500,50 +552,69 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, adjustAccounts(additionalFields));
 						}
 
-						responseData = await freshworksCrmApiRequest.call(this, 'POST', '/contacts', body);
-						responseData = responseData.contact;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+						responseData = responseData;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//             contact: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_a_contact
+						// https://developers.calendafy.com/crm/api/#delete_a_contact
 
 						const contactId = this.getNodeParameter('contactId', i);
-
-						const endpoint = `/contacts/${contactId}`;
-						await freshworksCrmApiRequest.call(this, 'DELETE', endpoint);
-						responseData = { success: true };
+						const body={
+							resource:resource,
+							operation:operation,
+							contactId:contactId
+						}
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
+						
 					} else if (operation === 'get') {
 						// ----------------------------------------
 						//               contact: get
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#view_a_contact
+						// https://developers.calendafy.com/crm/api/#view_a_contact
 
 						const contactId = this.getNodeParameter('contactId', i);
-
-						const endpoint = `/contacts/${contactId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', endpoint);
-						responseData = responseData.contact;
+						const body={
+							resource:resource,
+							operation:operation,
+							contactId:contactId
+						}
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
+						responseData = responseData;
 					} else if (operation === 'getAll') {
 						// ----------------------------------------
 						//             contact: getAll
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#list_all_contacts
+						// https://developers.calendafy.com/crm/api/#list_all_contacts
 
 						const view = this.getNodeParameter('view', i) as string;
-
-						responseData = await handleListing.call(this, 'GET', `/contacts/view/${view}`);
+						const body={
+							resource:resource,
+							operation:operation,
+							view:view
+						}
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/',body);
+						// responseData = await handleListing.call(this, 'GET', `/contacts/view/${view}`);
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//             contact: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_contact
+						// https://developers.calendafy.com/crm/api/#update_a_contact
 
-						const body = {} as IDataObject;
+						const contactId = this.getNodeParameter('contactId', i);
+
+						const body = {
+							resource:resource,
+							operation:operation,
+							contactId:contactId
+						} as IDataObject;
 						const updateFields = this.getNodeParameter('updateFields', i);
 
 						if (Object.keys(updateFields).length) {
@@ -552,29 +623,30 @@ export class CalendafyCrm implements INodeType {
 							throwOnEmptyUpdate.call(this, resource);
 						}
 
-						const contactId = this.getNodeParameter('contactId', i);
 
-						const endpoint = `/contacts/${contactId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'PUT', endpoint, body);
-						responseData = responseData.contact;
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint, body);
+						responseData = responseData;
 					}
 				} else if (resource === 'deal') {
 					// **********************************************************************
 					//                                  deal
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#deals
+					// https://developers.calendafy.com/crm/api/#deals
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//               deal: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_deal
+						// https://developers.calendafy.com/crm/api/#create_deal
 
 						const body = {
 							name: this.getNodeParameter('name', i),
 							amount: this.getNodeParameter('amount', i),
+							resource:resource,
+							operation:operation
 						} as IDataObject;
 
 						const additionalFields = this.getNodeParameter('additionalFields', i);
@@ -583,48 +655,69 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, adjustAccounts(additionalFields));
 						}
 
-						responseData = await freshworksCrmApiRequest.call(this, 'POST', '/deals', body);
-						responseData = responseData.deal;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+						responseData = responseData;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//               deal: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_a_deal
+						// https://developers.calendafy.com/crm/api/#delete_a_deal
 
 						const dealId = this.getNodeParameter('dealId', i);
+						const body={
+							resource:resource,
+							operation:operation,
+							dealId:dealId
+						}
 
-						await freshworksCrmApiRequest.call(this, 'DELETE', `/deals/${dealId}`);
-						responseData = { success: true };
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', `/`,body);
+						
 					} else if (operation === 'get') {
 						// ----------------------------------------
 						//                deal: get
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#view_a_deal
+						// https://developers.calendafy.com/crm/api/#view_a_deal
 
 						const dealId = this.getNodeParameter('dealId', i);
+						const body={
+							resource:resource,
+							operation:operation,
+							dealId:dealId
+						}
 
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', `/deals/${dealId}`);
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', `/`,body);
 						responseData = responseData.deal;
 					} else if (operation === 'getAll') {
 						// ----------------------------------------
 						//               deal: getAll
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#list_all_deals
+						// https://developers.calendafy.com/crm/api/#list_all_deals
 
 						const view = this.getNodeParameter('view', i) as string;
 
-						responseData = await handleListing.call(this, 'GET', `/deals/view/${view}`);
+						const body={
+							resource:resource,
+							operation:operation,
+							view:view
+						}
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', `/`,body);
+
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//               deal: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_deal
+						// https://developers.calendafy.com/crm/api/#update_a_deal
+						const dealId = this.getNodeParameter('dealId', i);
 
-						const body = {} as IDataObject;
+						const body = {
+							resource:resource,
+							operation:operation,
+							dealId:dealId
+						} as IDataObject;
 						const updateFields = this.getNodeParameter('updateFields', i);
 
 						if (Object.keys(updateFields).length) {
@@ -633,12 +726,11 @@ export class CalendafyCrm implements INodeType {
 							throwOnEmptyUpdate.call(this, resource);
 						}
 
-						const dealId = this.getNodeParameter('dealId', i);
 
-						responseData = await freshworksCrmApiRequest.call(
+						responseData = await calendafyCrmApiRequest.call(
 							this,
-							'PUT',
-							`/deals/${dealId}`,
+							'POST',
+							`/`,
 							body,
 						);
 						responseData = responseData.deal;
@@ -648,42 +740,56 @@ export class CalendafyCrm implements INodeType {
 					//                                  note
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#notes
+					// https://developers.calendafy.com/crm/api/#notes
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//               note: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_note
+						// https://developers.calendafy.com/crm/api/#create_note
 
 						const body = {
 							description: this.getNodeParameter('description', i),
 							targetable_id: this.getNodeParameter('targetable_id', i),
 							targetable_type: this.getNodeParameter('targetableType', i),
+							resource:resource,
+							operation:operation
 						} as IDataObject;
 
-						responseData = await freshworksCrmApiRequest.call(this, 'POST', '/notes', body);
-						responseData = responseData.note;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+						responseData = responseData;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//               note: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_a_note
+						// https://developers.calendafy.com/crm/api/#delete_a_note
 
 						const noteId = this.getNodeParameter('noteId', i);
+						const body={
+							resource:resource,
+							operation:operation,
+							noteId:noteId
+						}
 
-						await freshworksCrmApiRequest.call(this, 'DELETE', `/notes/${noteId}`);
-						responseData = { success: true };
+						responseData=await calendafyCrmApiRequest.call(this, 'POST', `/`,body);
+						
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//               note: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_note
+						// https://developers.calendafy.com/crm/api/#update_a_note
 
-						const body = {} as IDataObject;
+						
+						const noteId = this.getNodeParameter('noteId', i);
+
+						const body = {
+							resource:resource,
+							operation:operation,
+							noteId:noteId
+						} as IDataObject;
 						const updateFields = this.getNodeParameter('updateFields', i);
 
 						if (Object.keys(updateFields).length) {
@@ -692,29 +798,27 @@ export class CalendafyCrm implements INodeType {
 							throwOnEmptyUpdate.call(this, resource);
 						}
 
-						const noteId = this.getNodeParameter('noteId', i);
-
-						responseData = await freshworksCrmApiRequest.call(
+						responseData = await calendafyCrmApiRequest.call(
 							this,
-							'PUT',
-							`/notes/${noteId}`,
+							'POST',
+							`/`,
 							body,
 						);
-						responseData = responseData.note;
+						responseData = responseData;
 					}
 				} else if (resource === 'salesActivity') {
 					// **********************************************************************
 					//                             salesActivity
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#sales-activities
+					// https://developers.calendafy.com/crm/api/#sales-activities
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//          salesActivity: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_sales_activity
+						// https://developers.calendafy.com/crm/api/#create_sales_activity
 
 						const startDate = this.getNodeParameter('from_date', i) as string;
 						const endDate = this.getNodeParameter('end_date', i) as string;
@@ -727,6 +831,8 @@ export class CalendafyCrm implements INodeType {
 							end_date: tz(endDate, defaultTimezone).format(),
 							targetable_type: this.getNodeParameter('targetableType', i),
 							targetable_id: this.getNodeParameter('targetable_id', i),
+							resource:resource,
+							operation:operation
 						} as IDataObject;
 
 						const additionalFields = this.getNodeParameter('additionalFields', i);
@@ -735,48 +841,59 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, additionalFields);
 						}
 
-						responseData = await freshworksCrmApiRequest.call(this, 'POST', '/sales_activities', {
-							sales_activity: body,
-						});
-						responseData = responseData.sales_activity;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+						responseData = responseData;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//          salesActivity: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_a_sales_activity
+						// https://developers.calendafy.com/crm/api/#delete_a_sales_activity
 
 						const salesActivityId = this.getNodeParameter('salesActivityId', i);
-
-						const endpoint = `/sales_activities/${salesActivityId}`;
-						await freshworksCrmApiRequest.call(this, 'DELETE', endpoint);
-						responseData = { success: true };
+						const body={
+							resource:resource,
+							operation:operation,
+							salesActivityId:salesActivityId
+						}
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
+						
 					} else if (operation === 'get') {
 						// ----------------------------------------
 						//            salesActivity: get
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#view_a_sales_activity
+						// https://developers.calendafy.com/crm/api/#view_a_sales_activity
 
 						const salesActivityId = this.getNodeParameter('salesActivityId', i);
-
-						const endpoint = `/sales_activities/${salesActivityId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', endpoint);
-						responseData = responseData.sales_activity;
+						const body={
+							salesActivityId:salesActivityId,
+							resource:resource,
+							operation:operation
+						}
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint,body);
+						responseData = responseData;
 					} else if (operation === 'getAll') {
 						// ----------------------------------------
 						//          salesActivity: getAll
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#list_all_sales_activities
+						// https://developers.calendafy.com/crm/api/#list_all_sales_activities
+						const body={
+							resource:resource,
+							operation:operation
+						}
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/',body);
 
-						responseData = await handleListing.call(this, 'GET', '/sales_activities');
+						// responseData = await handleListing.call(this, 'GET', '/sales_activities');
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//          salesActivity: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_sales_activity
+						// https://developers.calendafy.com/crm/api/#update_a_sales_activity
 
 						const updateFields = this.getNodeParameter('updateFields', i) as IDataObject & {
 							from_date: string;
@@ -788,7 +905,13 @@ export class CalendafyCrm implements INodeType {
 							throwOnEmptyUpdate.call(this, resource);
 						}
 
-						const body = {} as IDataObject;
+						const salesActivityId = this.getNodeParameter('salesActivityId', i);
+
+						const body = {
+							resource:resource,
+							operation:operation,
+							salesActivityId:salesActivityId
+						} as IDataObject;
 						const { from_date, end_date, ...rest } = updateFields;
 
 						if (from_date) {
@@ -803,11 +926,10 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, rest);
 						}
 
-						const salesActivityId = this.getNodeParameter('salesActivityId', i);
 
-						const endpoint = `/sales_activities/${salesActivityId}`;
-						responseData = await freshworksCrmApiRequest.call(this, 'PUT', endpoint, body);
-						responseData = responseData.sales_activity;
+						const endpoint = `/`;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', endpoint, body);
+						responseData = responseData;
 					}
 				} else if (resource === 'search') {
 					// **********************************************************************
@@ -815,31 +937,33 @@ export class CalendafyCrm implements INodeType {
 					// **********************************************************************
 
 					if (operation === 'query') {
-						// https://developers.freshworks.com/crm/api/#search
+						// https://developers.calendafy.com/crm/api/#search
 						const query = this.getNodeParameter('query', i) as string;
 						let entities = this.getNodeParameter('entities', i);
-						const returnAll = this.getNodeParameter('returnAll', 0, false);
+						// const returnAll = this.getNodeParameter('returnAll', 0, false);
 
 						if (Array.isArray(entities)) {
 							entities = entities.join(',');
 						}
 
-						const qs: IDataObject = {
+						const body={
 							q: query,
 							include: entities,
 							per_page: 100,
-						};
-
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', '/search', {}, qs);
-
-						if (!returnAll) {
-							const limit = this.getNodeParameter('limit', 0);
-							responseData = responseData.slice(0, limit);
+							resource:resource,
+							operation:operation
 						}
+
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+
+						// if (!returnAll) {
+						// 	const limit = this.getNodeParameter('limit', 0);
+						// 	responseData = responseData.slice(0, limit);
+						// }
 					}
 
 					if (operation === 'lookup') {
-						// https://developers.freshworks.com/crm/api/#lookup_search
+						// https://developers.calendafy.com/crm/api/#lookup_search
 						let searchField = this.getNodeParameter('searchField', i) as string;
 						let fieldValue = this.getNodeParameter('fieldValue', i, '') as string;
 						let entities = this.getNodeParameter('options.entities', i) as string;
@@ -852,27 +976,29 @@ export class CalendafyCrm implements INodeType {
 							fieldValue = this.getNodeParameter('customFieldValue', i) as string;
 						}
 
-						const qs: IDataObject = {
+						const body={
 							q: fieldValue,
 							f: searchField,
 							entities,
-						};
+							resource:resource,
+							operation:operation
+						}
 
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', '/lookup', {}, qs);
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/lookup', body);
 					}
 				} else if (resource === 'task') {
 					// **********************************************************************
 					//                                  task
 					// **********************************************************************
 
-					// https://developers.freshworks.com/crm/api/#tasks
+					// https://developers.calendafy.com/crm/api/#tasks
 
 					if (operation === 'create') {
 						// ----------------------------------------
 						//               task: create
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#create_task
+						// https://developers.calendafy.com/crm/api/#create_task
 
 						const dueDate = this.getNodeParameter('dueDate', i);
 
@@ -882,6 +1008,8 @@ export class CalendafyCrm implements INodeType {
 							due_date: tz(dueDate, defaultTimezone).format(),
 							targetable_type: this.getNodeParameter('targetableType', i),
 							targetable_id: this.getNodeParameter('targetable_id', i),
+							resource:resource,
+							operation:operation
 						} as IDataObject;
 
 						const additionalFields = this.getNodeParameter('additionalFields', i);
@@ -890,63 +1018,82 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, additionalFields);
 						}
 
-						responseData = await freshworksCrmApiRequest.call(this, 'POST', '/tasks', body);
-						responseData = responseData.task;
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', '/', body);
+						responseData = responseData;
 					} else if (operation === 'delete') {
 						// ----------------------------------------
 						//               task: delete
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#delete_a_task
+						// https://developers.calendafy.com/crm/api/#delete_a_task
 
 						const taskId = this.getNodeParameter('taskId', i);
+						const body={
+							resource:resource,
+							operation:operation,
+							taskId:taskId
+						}
 
-						await freshworksCrmApiRequest.call(this, 'DELETE', `/tasks/${taskId}`);
-						responseData = { success: true };
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', `/`,body);
+						
 					} else if (operation === 'get') {
 						// ----------------------------------------
 						//                task: get
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#view_a_task
+						// https://developers.calendafy.com/crm/api/#view_a_task
 
 						const taskId = this.getNodeParameter('taskId', i);
 
-						responseData = await freshworksCrmApiRequest.call(this, 'GET', `/tasks/${taskId}`);
-						responseData = responseData.task;
+						const body={
+							resource:resource,
+							operation:operation,
+							taskId:taskId
+						}
+
+						responseData = await calendafyCrmApiRequest.call(this, 'POST', `/`,body);
+						responseData = responseData;
 					} else if (operation === 'getAll') {
 						// ----------------------------------------
 						//               task: getAll
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#list_all_tasks
+						// https://developers.calendafy.com/crm/api/#list_all_tasks
 
 						const { filter, include } = this.getNodeParameter('filters', i) as {
 							filter: string;
 							include: string;
 						};
 
-						const qs: IDataObject = {
+						const body={
 							filter: 'open',
-						};
-
+							resource:resource,
+							operation:operation,
+							include:""
+						}
 						if (filter) {
-							qs.filter = filter;
+							body.filter = filter;
 						}
 
 						if (include) {
-							qs.include = include;
+							body.include = include;
 						}
 
-						responseData = await handleListing.call(this, 'GET', '/tasks', {}, qs);
+						responseData = await handleListing.call(this, 'POST', '/', body);
 					} else if (operation === 'update') {
 						// ----------------------------------------
 						//               task: update
 						// ----------------------------------------
 
-						// https://developers.freshworks.com/crm/api/#update_a_task
+						// https://developers.calendafy.com/crm/api/#update_a_task
 
-						const body = {} as IDataObject;
+						const taskId = this.getNodeParameter('taskId', i);
+
+						const body = {
+							resource:resource,
+							operation:operation,
+							taskId:taskId
+						} as IDataObject;
 						const updateFields = this.getNodeParameter('updateFields', i);
 
 						if (!Object.keys(updateFields).length) {
@@ -963,12 +1110,11 @@ export class CalendafyCrm implements INodeType {
 							Object.assign(body, rest);
 						}
 
-						const taskId = this.getNodeParameter('taskId', i);
 
-						responseData = await freshworksCrmApiRequest.call(
+						responseData = await calendafyCrmApiRequest.call(
 							this,
-							'PUT',
-							`/tasks/${taskId}`,
+							'POST',
+							`/`,
 							body,
 						);
 						responseData = responseData.task;

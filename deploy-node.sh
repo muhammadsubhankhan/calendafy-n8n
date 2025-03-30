@@ -21,7 +21,7 @@ if [ -z "$PACKAGE_NAME" ]; then
 fi
 
 # Set the target directory based on the package name.
-TARGET_DIR="C:/Users/salman.moosa_wavetec/.n8n/custom/$PACKAGE_NAME"
+TARGET_DIR="C:/Users/subhan/.n8n/custom/$PACKAGE_NAME"
 
 echo "Detected package name: '$PACKAGE_NAME'"
 echo "Target deployment directory: '$TARGET_DIR'"

@@ -1,9 +1,9 @@
 export type FreshworksCrmApiCredentials = {
 	apiKey: string;
-	domain: string;
+	userid: string;
 };
 
-export type FreshworksConfigResponse<T> = {
+export type CalendafyConfigResponse<T> = {
 	[key: string]: T[];
 };
 

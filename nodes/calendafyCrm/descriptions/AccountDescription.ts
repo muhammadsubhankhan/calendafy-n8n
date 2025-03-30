@@ -56,7 +56,7 @@ export const accountFields: INodeProperties[] = [
 		name: 'name',
 		description: 'Name of the account',
 		type: 'string',
-		required: true,
+		required: false,
 		default: '',
 		displayOptions: {
 			show: {
@@ -224,7 +224,7 @@ export const accountFields: INodeProperties[] = [
 		name: 'accountId',
 		description: 'ID of the account to delete',
 		type: 'string',
-		required: true,
+		required: false,
 		default: '',
 		displayOptions: {
 			show: {
@@ -242,7 +242,7 @@ export const accountFields: INodeProperties[] = [
 		name: 'accountId',
 		description: 'ID of the account to retrieve',
 		type: 'string',
-		required: true,
+		required: false,
 		default: '',
 		displayOptions: {
 			show: {
@@ -261,7 +261,7 @@ export const accountFields: INodeProperties[] = [
 		type: 'options',
 		description:
 			'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
-		required: true,
+		required: false,
 		typeOptions: {
 			loadOptionsMethod: 'getAccountViews',
 		},
@@ -312,7 +312,7 @@ export const accountFields: INodeProperties[] = [
 		name: 'accountId',
 		description: 'ID of the account to update',
 		type: 'string',
-		required: true,
+		required: false,
 		default: '',
 		displayOptions: {
 			show: {
